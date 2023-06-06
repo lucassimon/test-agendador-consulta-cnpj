@@ -1,0 +1,36 @@
+@startuml contexto
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+AddRelTag("async", $lineStyle = DashedLine())
+SHOW_PERSON_PORTRAIT()
+
+title "Agendador de consulta de cnpj"
+Person(user,"Usuário","Acessa as apis através do frontend para criar uma angedamento e ver os resultados da pesquisa")
+
+System_Boundary(gateway, "CCnpj") {
+    Container(frontend,"Frontend: Agendador de consultas CNPJ","NextJS","SPA que cadastro de jobs, listagem de jobs e results")
+    Container(backend_users,"Backend: Api de usuários","Python/Flask","Gerencia os usuarios assim como autenticação e autorização")
+    Container(database_users,"Database usuarios","Mongo","Armazena dados dos usuários")
+    Container(backend_agendador,"Backend: Api de agendamento de CNPJ","Python/Flask","Gerencia os jobs assim como seus resultados")
+    Container(database_agendador,"Database agendamento de Cnpj","Postgres","Armazena dados dos jobs")
+    Container(worker,"Worker","Python","Processa as mensagens da fila, fazendo o scraper e o parser")
+    Container(cronjob,"Cron <<Not Implemented>>","Python","Rotina disparada as 19 horas")
+    Container(rabbitmq,"Rabbitmq sistema de filas","Rabbitmq","Gerencia as mensagens")
+    Container(mailhog,"Smtp Faker","SMTP","Simulador de smtp")
+
+    Rel(user,frontend,"Interage com via","HTTPS")
+
+    Rel(frontend,backend_users,"Interage com via","HTTPS/JSON")
+    Rel(backend_users,database_users,"Interage com usando","TCP")
+
+    Rel(frontend,backend_agendador,"Interage com via","HTTPS/JSON")
+    Rel(backend_agendador,backend_users,"Interage com via", "HTTPS/JSON")
+    Rel(backend_agendador,database_agendador,"Publica mensagens via","TCP")
+    Rel(backend_agendador,rabbitmq,"Interage com usando","TCP")
+    
+    Rel(worker,rabbitmq,"Consome mensagens via","TCP")
+    Rel(worker,mailhog,"Dispara emails via","TCP")
+
+    Rel(cronjob,database_agendador,"Select via","TCP")
+    Rel(cronjob,mailhog,"Dispara emails via","TCP")
+}
+@enduml
